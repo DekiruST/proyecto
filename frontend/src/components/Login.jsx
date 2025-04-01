@@ -1,4 +1,3 @@
-// src/components/Login.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { server1, server2 } from '../services/api';
@@ -26,7 +25,7 @@ export default function Login() {
       localStorage.setItem('userId', res.data.userId);
 
       // Redirigimos a la pantalla de verificación MFA
-      navigate('/verify-mfa');
+      navigate('/verify');
     } catch (err) {
       let errorMessage = 'Error en la autenticación';
       
