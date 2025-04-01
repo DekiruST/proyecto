@@ -1,11 +1,9 @@
 import axios from 'axios';
 
-// Servidor 1 en http://localhost:3000 (con Rate Limit)
 export const server1 = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: 'https://server1-mzw6.onrender.com',
 });
 
-// Servidor 2 en http://localhost:3001 (sin Rate Limit)
 export const server2 = axios.create({
-  baseURL: 'http://localhost:3001',
+  baseURL: 'https://server2-t91v.onrender.com', 
 });
