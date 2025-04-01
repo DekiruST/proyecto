@@ -1,4 +1,3 @@
-// src/components/VerifyMFA.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { server1, server2 } from '../services/api';
@@ -29,7 +28,7 @@ export default function VerifyMFA() {
 
       // Autenticación MFA exitosa
       localStorage.setItem('accessToken', res.data.accessToken);
-      navigate('/'); // redirige a Home
+      navigate('/home');
     } catch (err) {
       let errorMessage = 'Error verificando MFA';
       if (err.response) {
