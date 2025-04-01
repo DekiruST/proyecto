@@ -20,10 +20,11 @@ const db = admin.firestore();
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'https://frontend-6ebg.onrender.com'],
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 
 app.use(bodyParser.json());
 
