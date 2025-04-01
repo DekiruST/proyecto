@@ -1,9 +1,7 @@
-// src/components/Logs.jsx
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 
-// Importar lo necesario de Chart.js
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,80 +9,62 @@ import {
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ArcElement
 } from 'chart.js';
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
-// Importar el componente de barras
-import { Bar } from 'react-chartjs-2';
+import { Bar, Pie } from 'react-chartjs-2';
 
 export default function Logs() {
-  // Aquí guardamos los logs de server1 y server2
   const [logs, setLogs] = useState({ server1: [], server2: [] });
-
-  // Estado para controlar la pestaña activa: 'level' o 'status'
   const [activeTab, setActiveTab] = useState('level');
 
   useEffect(() => {
-    // Suscripción a logs del servidor 1 (server=1)
     const q1 = query(collection(db, 'logs'), where('server', '==', 1));
     const unsubscribe1 = onSnapshot(q1, (snapshot) => {
       const server1Logs = snapshot.docs.map(doc => doc.data());
       setLogs(prev => ({ ...prev, server1: server1Logs }));
     });
 
-    // Suscripción a logs del servidor 2 (server=2)
     const q2 = query(collection(db, 'logs'), where('server', '==', 2));
     const unsubscribe2 = onSnapshot(q2, (snapshot) => {
       const server2Logs = snapshot.docs.map(doc => doc.data());
       setLogs(prev => ({ ...prev, server2: server2Logs }));
     });
 
-    // Cleanup al desmontar
     return () => {
       unsubscribe1();
       unsubscribe2();
     };
   }, []);
 
+  const allLogs = [...logs.server1, ...logs.server2];
+
   return (
     <div className="logs-container">
       <h2>Vista de Logs con Tabs</h2>
-      
-      {/* Botones de Tabs */}
+
       <div style={{ marginBottom: '1rem' }}>
-        <button onClick={() => setActiveTab('level')} style={{ marginRight: 8 }}>
-          Por logLevel
-        </button>
-        <button onClick={() => setActiveTab('status')}>
-          Por status HTTP
-        </button>
+        <button onClick={() => setActiveTab('level')} style={{ marginRight: 8 }}>Por logLevel</button>
+        <button onClick={() => setActiveTab('status')} style={{ marginRight: 8 }}>Por status HTTP</button>
+        <button onClick={() => setActiveTab('userAgent')} style={{ marginRight: 8 }}>Por User Agent</button>
+        <button onClick={() => setActiveTab('responseTime')}>Tiempo Promedio</button>
       </div>
 
-      {activeTab === 'level' && (
-        <LogsByLevel server1Logs={logs.server1} server2Logs={logs.server2} />
-      )}
-
-      {activeTab === 'status' && (
-        <LogsByStatus server1Logs={logs.server1} server2Logs={logs.server2} />
-      )}
+      {activeTab === 'level' && <LogsByLevel server1Logs={logs.server1} server2Logs={logs.server2} />}
+      {activeTab === 'status' && <LogsByStatus server1Logs={logs.server1} server2Logs={logs.server2} />}
+      {activeTab === 'userAgent' && <LogsByUserAgent logs={allLogs} />}
+      {activeTab === 'responseTime' && <LogsByResponseTime logs={allLogs} />}
     </div>
   );
 }
 
 function LogsByLevel({ server1Logs, server2Logs }) {
   const logLevels = ['info', 'warn', 'error', 'debug'];
-
-
-  const countLogsByLogLevel = (logsArray, level) => 
-    logsArray.filter(log => log.logLevel === level).length;
-
-
+  const countLogsByLogLevel = (logsArray, level) => logsArray.filter(log => log.logLevel === level).length;
   const countOthers = (logsArray) => {
-    const sumKnown = logLevels.reduce(
-      (acc, lvl) => acc + countLogsByLogLevel(logsArray, lvl),
-      0
-    );
+    const sumKnown = logLevels.reduce((acc, lvl) => acc + countLogsByLogLevel(logsArray, lvl), 0);
     return logsArray.length - sumKnown;
   };
 
@@ -95,19 +75,13 @@ function LogsByLevel({ server1Logs, server2Logs }) {
     datasets: [
       {
         label: 'Servidor 1 (Rate Limit)',
-        data: [
-          ...logLevels.map(lvl => countLogsByLogLevel(server1Logs, lvl)),
-          countOthers(server1Logs)
-        ],
-        backgroundColor: 'rgba(54, 162, 235, 0.7)', // azul
+        data: [...logLevels.map(lvl => countLogsByLogLevel(server1Logs, lvl)), countOthers(server1Logs)],
+        backgroundColor: 'rgba(54, 162, 235, 0.7)',
       },
       {
         label: 'Servidor 2 (Sin Rate Limit)',
-        data: [
-          ...logLevels.map(lvl => countLogsByLogLevel(server2Logs, lvl)),
-          countOthers(server2Logs)
-        ],
-        backgroundColor: 'rgba(255, 99, 132, 0.7)', // rojo
+        data: [...logLevels.map(lvl => countLogsByLogLevel(server2Logs, lvl)), countOthers(server2Logs)],
+        backgroundColor: 'rgba(255, 99, 132, 0.7)',
       }
     ]
   };
@@ -121,9 +95,7 @@ function LogsByLevel({ server1Logs, server2Logs }) {
       },
       legend: { position: 'bottom' },
     },
-    scales: {
-      y: { beginAtZero: true }
-    }
+    scales: { y: { beginAtZero: true } }
   };
 
   return (
@@ -134,23 +106,13 @@ function LogsByLevel({ server1Logs, server2Logs }) {
   );
 }
 
-
 function LogsByStatus({ server1Logs, server2Logs }) {
-  // array con los status principales que graficamos
   const statuses = [200, 201, 400, 404, 500];
-
-  const countLogsByStatus = (logsArray, st) =>
-    logsArray.filter(log => log.status === st).length;
-
+  const countLogsByStatus = (logsArray, st) => logsArray.filter(log => log.status === st).length;
   const countOthersStatus = (logsArray) => {
-    const sumKnown = statuses.reduce(
-      (acc, st) => acc + countLogsByStatus(logsArray, st),
-      0
-    );
+    const sumKnown = statuses.reduce((acc, st) => acc + countLogsByStatus(logsArray, st), 0);
     return logsArray.length - sumKnown;
   };
-
-  // Esta función obtiene un array único de los códigos que no están en statuses
   const getOthersStatus = (logsArray) => {
     const otherStatuses = new Set();
     logsArray.forEach(log => {
@@ -158,10 +120,9 @@ function LogsByStatus({ server1Logs, server2Logs }) {
         otherStatuses.add(log.status);
       }
     });
-    return [...otherStatuses]; // convertimos Set a array
+    return [...otherStatuses];
   };
 
-  // labels y data para la gráfica
   const labels = [...statuses.map(st => st.toString()), 'otros'];
 
   const data = {
@@ -169,18 +130,12 @@ function LogsByStatus({ server1Logs, server2Logs }) {
     datasets: [
       {
         label: 'Servidor 1 (Rate Limit)',
-        data: [
-          ...statuses.map(st => countLogsByStatus(server1Logs, st)),
-          countOthersStatus(server1Logs)
-        ],
+        data: [...statuses.map(st => countLogsByStatus(server1Logs, st)), countOthersStatus(server1Logs)],
         backgroundColor: 'rgba(75, 192, 192, 0.7)',
       },
       {
         label: 'Servidor 2 (Sin Rate Limit)',
-        data: [
-          ...statuses.map(st => countLogsByStatus(server2Logs, st)),
-          countOthersStatus(server2Logs)
-        ],
+        data: [...statuses.map(st => countLogsByStatus(server2Logs, st)), countOthersStatus(server2Logs)],
         backgroundColor: 'rgba(153, 102, 255, 0.7)',
       }
     ]
@@ -195,12 +150,9 @@ function LogsByStatus({ server1Logs, server2Logs }) {
       },
       legend: { position: 'bottom' },
     },
-    scales: {
-      y: { beginAtZero: true }
-    }
+    scales: { y: { beginAtZero: true } }
   };
 
-  // Obtenemos los arrays de “otros” statuses para cada servidor
   const server1Others = getOthersStatus(server1Logs);
   const server2Others = getOthersStatus(server2Logs);
 
@@ -208,8 +160,6 @@ function LogsByStatus({ server1Logs, server2Logs }) {
     <div style={{ marginTop: '2rem' }}>
       <h3>Gráfica por status</h3>
       <Bar data={data} options={options} />
-
-      {/* Mostrar al usuario cuáles son los status que están quedando en “otros” */}
       <div style={{ marginTop: '1rem' }}>
         <p><strong>Servidor 1 (otros):</strong> {server1Others.join(', ') || 'Ninguno'}</p>
         <p><strong>Servidor 2 (otros):</strong> {server2Others.join(', ') || 'Ninguno'}</p>
@@ -218,3 +168,81 @@ function LogsByStatus({ server1Logs, server2Logs }) {
   );
 }
 
+function LogsByUserAgent({ logs }) {
+  const counts = logs.reduce((acc, log) => {
+    const ua = log.userAgent || 'Desconocido';
+    acc[ua] = (acc[ua] || 0) + 1;
+    return acc;
+  }, {});
+
+  const labels = Object.keys(counts);
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: 'User Agents',
+        data: Object.values(counts),
+        backgroundColor: labels.map(() => `rgba(${Math.random()*255}, ${Math.random()*255}, ${Math.random()*255}, 0.6)`),
+      }
+    ]
+  };
+
+  const options = {
+    responsive: true,
+    plugins: {
+      title: {
+        display: true,
+        text: 'Cantidad de logs por User Agent',
+      },
+      legend: { position: 'bottom' }
+    }
+  };
+
+  return (
+    <div>
+      <h3>Gráfica de User Agents</h3>
+      <Pie data={data} options={options} />
+    </div>
+  );
+}
+
+function LogsByResponseTime({ logs }) {
+  const group = logs.reduce((acc, log) => {
+    const server = log.server === 1 ? 'Servidor 1' : 'Servidor 2';
+    acc[server] = acc[server] || { total: 0, count: 0 };
+    acc[server].total += log.responseTime || 0;
+    acc[server].count++;
+    return acc;
+  }, {});
+
+  const labels = Object.keys(group);
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: 'Tiempo de respuesta promedio (ms)',
+        data: labels.map(server => group[server].total / group[server].count),
+        backgroundColor: ['rgba(255, 206, 86, 0.7)', 'rgba(54, 162, 235, 0.7)'],
+      }
+    ]
+  };
+
+  const options = {
+    responsive: true,
+    plugins: {
+      title: {
+        display: true,
+        text: 'Tiempo de respuesta promedio por servidor',
+      },
+      legend: { position: 'bottom' },
+    },
+    scales: { y: { beginAtZero: true } }
+  };
+
+  return (
+    <div>
+      <h3>Gráfica de Tiempos de Respuesta</h3>
+      <Bar data={data} options={options} />
+    </div>
+  );
+}
