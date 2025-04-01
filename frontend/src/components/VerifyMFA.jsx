@@ -18,9 +18,7 @@ export default function VerifyMFA() {
     setError('');
 
     try {
-      // El servidor que generó el token, en general, es el que debemos llamar.
-      // Pero si hemos cambiado a server2, podríamos checar la última variable.
-      // Para simplificar, llamaremos a server1 (o en producción, guardas cuál usaste).
+     
       const api = token ? server1 : server2;
 
       const res = await api.post('/verify-mfa', {

@@ -1,25 +1,19 @@
-// RegisterForm.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// Supongamos que server1 es tu servidor con rate limit
 import { server1 } from '../services/api'; 
-// IMPORTANTE: instala y luego importa QRCode
 import QRCode from 'react-qr-code';
 
 export default function RegisterForm() {
   const navigate = useNavigate();
   
-  // Estados para los campos de registro
   const [formData, setFormData] = useState({
     email: '',
     username: '',
     password: ''
   });
 
-  // Estado para mostrar errores (opcional)
   const [error, setError] = useState('');
   
-  // Estado que guardará el otpauth_url que devuelve tu servidor
   const [qrUrl, setQrUrl] = useState('');
 
   const handleSubmit = async (e) => {
@@ -27,23 +21,10 @@ export default function RegisterForm() {
     setError('');
 
     try {
-      // Llamas a tu servidor para registrar al usuario
       const response = await server1.post('/register', formData);
-
-      // El servidor te envía userId, y *otpauth_url* 
-      // si lo has agregado en la respuesta
       const { userId, otpauth_url } = response.data;
-
-      // Almacenas la URL TOTP en tu estado
       setQrUrl(otpauth_url);
-
-      // (Opcional) Guardas userId si lo necesitas
       sessionStorage.setItem('registeredUserId', userId);
-
-      // A partir de aquí, decides si rediriges a otro lado 
-      // o simplemente te quedas en esta vista para mostrar el QR.
-      // navigate('/login'); // EJEMPLO: si quisieras pasar a login directo
-
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || 'Error en el registro');
