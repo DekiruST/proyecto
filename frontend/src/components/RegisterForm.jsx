@@ -80,9 +80,10 @@ export default function RegisterForm() {
         </div>
       )}
 
-      <div className="auth-links" style={{ marginTop: '1rem' }}>
-        ¿Ya tienes cuenta? <span onClick={() => navigate('/login')}>Inicia Sesión</span>
-      </div>
+<div className="auth-links" style={{ marginTop: '1rem' }}>
+  ¿Ya tienes cuenta? <span onClick={() => navigate('/login')} style={{ cursor: 'pointer', color: 'blue' }}>Inicia Sesión</span>
+</div>
+
     </div>
   );
 }
