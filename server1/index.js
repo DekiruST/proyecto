@@ -1,4 +1,3 @@
-// index.js (Servidor 1 con Rate Limit - extendido con más info de logs)
 const express = require('express');
 const bodyParser = require('body-parser');
 const { check, validationResult } = require('express-validator');
@@ -21,10 +20,11 @@ const db = admin.firestore();
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'https://frontend-6ebg.onrender.com'],
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 
 app.use(bodyParser.json());
 
