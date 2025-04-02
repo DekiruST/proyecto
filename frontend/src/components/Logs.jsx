@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import React, { useState } from 'react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
 import {
@@ -20,24 +20,16 @@ export default function Logs() {
   const [logs, setLogs] = useState({ server1: [], server2: [] });
   const [activeTab, setActiveTab] = useState('level');
 
-  useEffect(() => {
+  const handleFetchLogs = async () => {
     const q1 = query(collection(db, 'logs'), where('server', '==', 1));
-    const unsubscribe1 = onSnapshot(q1, (snapshot) => {
-      const server1Logs = snapshot.docs.map(doc => doc.data());
-      setLogs(prev => ({ ...prev, server1: server1Logs }));
-    });
-
     const q2 = query(collection(db, 'logs'), where('server', '==', 2));
-    const unsubscribe2 = onSnapshot(q2, (snapshot) => {
-      const server2Logs = snapshot.docs.map(doc => doc.data());
-      setLogs(prev => ({ ...prev, server2: server2Logs }));
-    });
 
-    return () => {
-      unsubscribe1();
-      unsubscribe2();
-    };
-  }, []);
+    const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+    const server1Logs = snap1.docs.map(doc => doc.data());
+    const server2Logs = snap2.docs.map(doc => doc.data());
+
+    setLogs({ server1: server1Logs, server2: server2Logs });
+  };
 
   const allLogs = [...logs.server1, ...logs.server2];
 
@@ -49,7 +41,8 @@ export default function Logs() {
         <button onClick={() => setActiveTab('level')} style={{ marginRight: 8 }}>Por logLevel</button>
         <button onClick={() => setActiveTab('status')} style={{ marginRight: 8 }}>Por status HTTP</button>
         <button onClick={() => setActiveTab('userAgent')} style={{ marginRight: 8 }}>Por User Agent</button>
-        <button onClick={() => setActiveTab('responseTime')}>Tiempo Promedio</button>
+        <button onClick={() => setActiveTab('responseTime')} style={{ marginRight: 8 }}>Tiempo Promedio</button>
+        <button onClick={handleFetchLogs}>Recargar Gráficas</button>
       </div>
 
       {activeTab === 'level' && <LogsByLevel server1Logs={logs.server1} server2Logs={logs.server2} />}
@@ -58,7 +51,6 @@ export default function Logs() {
       {activeTab === 'responseTime' && <LogsByResponseTime logs={allLogs} />}
     </div>
   );
-}
 
 function LogsByLevel({ server1Logs, server2Logs }) {
   const logLevels = ['info', 'warn', 'error', 'debug'];
@@ -245,4 +237,5 @@ function LogsByResponseTime({ logs }) {
       <Bar data={data} options={options} />
     </div>
   );
+}
 }
