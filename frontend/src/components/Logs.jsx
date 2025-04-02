@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+// src/components/Logs.jsx
+import React, { useState, useEffect } from 'react';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 
+// Importar lo necesario de Chart.js
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,22 +16,31 @@ import {
 } from 'chart.js';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
+// Importar el componente de barras y pastel
 import { Bar, Pie } from 'react-chartjs-2';
 
 export default function Logs() {
   const [logs, setLogs] = useState({ server1: [], server2: [] });
   const [activeTab, setActiveTab] = useState('level');
 
-  const handleFetchLogs = async () => {
+  useEffect(() => {
     const q1 = query(collection(db, 'logs'), where('server', '==', 1));
+    const unsubscribe1 = onSnapshot(q1, (snapshot) => {
+      const server1Logs = snapshot.docs.map(doc => doc.data());
+      setLogs(prev => ({ ...prev, server1: server1Logs }));
+    });
+
     const q2 = query(collection(db, 'logs'), where('server', '==', 2));
+    const unsubscribe2 = onSnapshot(q2, (snapshot) => {
+      const server2Logs = snapshot.docs.map(doc => doc.data());
+      setLogs(prev => ({ ...prev, server2: server2Logs }));
+    });
 
-    const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-    const server1Logs = snap1.docs.map(doc => doc.data());
-    const server2Logs = snap2.docs.map(doc => doc.data());
-
-    setLogs({ server1: server1Logs, server2: server2Logs });
-  };
+    return () => {
+      unsubscribe1();
+      unsubscribe2();
+    };
+  }, []);
 
   const allLogs = [...logs.server1, ...logs.server2];
 
@@ -41,8 +52,7 @@ export default function Logs() {
         <button onClick={() => setActiveTab('level')} style={{ marginRight: 8 }}>Por logLevel</button>
         <button onClick={() => setActiveTab('status')} style={{ marginRight: 8 }}>Por status HTTP</button>
         <button onClick={() => setActiveTab('userAgent')} style={{ marginRight: 8 }}>Por User Agent</button>
-        <button onClick={() => setActiveTab('responseTime')} style={{ marginRight: 8 }}>Tiempo Promedio</button>
-        <button onClick={handleFetchLogs}>Recargar Gráficas</button>
+        <button onClick={() => setActiveTab('responseTime')}>Tiempo Promedio</button>
       </div>
 
       {activeTab === 'level' && <LogsByLevel server1Logs={logs.server1} server2Logs={logs.server2} />}
@@ -51,6 +61,7 @@ export default function Logs() {
       {activeTab === 'responseTime' && <LogsByResponseTime logs={allLogs} />}
     </div>
   );
+}
 
 function LogsByLevel({ server1Logs, server2Logs }) {
   const logLevels = ['info', 'warn', 'error', 'debug'];
@@ -237,5 +248,4 @@ function LogsByResponseTime({ logs }) {
       <Bar data={data} options={options} />
     </div>
   );
-}
 }
