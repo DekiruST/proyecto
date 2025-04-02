@@ -85,7 +85,7 @@ function LogsByLevel({ server1Logs, server2Logs }) {
 }
 
 function LogsByStatus({ server1Logs, server2Logs }) {
-  const statuses = [200, 201, 400, 404, 500];
+  const statuses = [200, 201, 400, 404, 429, 500];
   const count = (logs, s) => logs.filter(log => log.status === s).length;
   const others = logs => logs.length - statuses.reduce((sum, s) => sum + count(logs, s), 0);
 
